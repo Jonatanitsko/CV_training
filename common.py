@@ -83,8 +83,19 @@ class DetectorBackboneWithFPN(nn.Module):
         # Add THREE lateral 1x1 conv and THREE output 3x3 conv layers.
         self.fpn_params = nn.ModuleDict()
 
-        # Replace "pass" statement with your code
-        pass
+        # Read input channels of (c3, c4, c5) off the dummy forward pass, so
+        # this works for any backbone without hard-coding channel counts.
+        for level_name, feat_shape in dummy_out_shapes:
+            # Lateral 1x1 conv: brings every level to a common `out_channels`
+            # so that they can be added together during top-down merging.
+            self.fpn_params[f"lateral_{level_name}"] = nn.Conv2d(
+                feat_shape[1], out_channels, kernel_size=1, stride=1, padding=0
+            )
+            # Output 3x3 conv: smooths aliasing introduced by upsample-and-add.
+            # padding=1 keeps (H, W) unchanged.
+            self.fpn_params[f"output_{level_name}"] = nn.Conv2d(
+                out_channels, out_channels, kernel_size=3, stride=1, padding=1
+            )
         ######################################################################
         #                            END OF YOUR CODE                        #
         ######################################################################
@@ -111,7 +122,13 @@ class DetectorBackboneWithFPN(nn.Module):
         ######################################################################
 
         # Replace "pass" statement with your code
-        pass
+        
+        p5_upscale = self.fpn_params[f"lateral_c5"](backbone_feats["c5"])
+        p4_upscale = self.fpn_params[f"lateral_c4"](backbone_feats["c4"]) + F.interpolate(p5_upscale, scale_factor=2, mode='bilinear')
+        p3_upscale = self.fpn_params[f"lateral_c3"](backbone_feats["c3"]) + F.interpolate(p4_upscale, scale_factor=2, mode = 'bilinear')
+        fpn_feats["p5"] = self.fpn_params[f"output_c5"](p5_upscale)
+        fpn_feats["p4"] = self.fpn_params[f"output_c4"](p4_upscale)
+        fpn_feats["p3"]= self.fpn_params[f"output_c3"](p3_upscale)
         ######################################################################
         #                            END OF YOUR CODE                        #
         ######################################################################
@@ -157,7 +174,12 @@ def get_fpn_location_coords(
         # TODO: Implement logic to get location co-ordinates below.          #
         ######################################################################
         # Replace "pass" statement with your code
-        pass
+        B,C,H,W = feat_shape
+        ys = torch.arange(H, dtype=dtype, device=device) 
+        xs = torch.arange(W, dtype=dtype, device=device)
+        yy, xx = torch.meshgrid(ys, xs, indexing="ij")
+        location_coords[level_name] = (torch.stack([xx, yy], dim=-1) + 0.5) * level_stride
+
         ######################################################################
         #                             END OF YOUR CODE                       #
         ######################################################################
@@ -183,7 +205,6 @@ def nms(boxes: torch.Tensor, scores: torch.Tensor, iou_threshold: float = 0.5):
     if (not boxes.numel()) or (not scores.numel()):
         return torch.zeros(0, dtype=torch.long)
 
-    keep = None
     #############################################################################
     # TODO: Implement non-maximum suppression which iterates the following:     #
     #       1. Select the highest-scoring box among the remaining ones,         #
@@ -196,7 +217,32 @@ def nms(boxes: torch.Tensor, scores: torch.Tensor, iou_threshold: float = 0.5):
     # github.com/pytorch/vision/blob/main/torchvision/csrc/ops/cpu/nms_kernel.cpp
     #############################################################################
     # Replace "pass" statement with your code
-    pass
+    keep = []
+    order = scores.argsort(descending=True)
+
+    x1, y1, x2, y2 = boxes[:, 0], boxes[:, 1], boxes[:, 2], boxes[:, 3]
+    areas = (x2 - x1) * (y2 - y1)
+
+    while order.numel() > 0:
+        i = order[0]
+        keep.append(i)
+        if order.numel() == 1:
+            break
+
+        rest = order[1:]
+
+        inter_x1 = torch.maximum(x1[i], x1[rest])
+        inter_y1 = torch.maximum(y1[i], y1[rest])
+        inter_x2 = torch.minimum(x2[i], x2[rest])
+        inter_y2 = torch.minimum(y2[i], y2[rest])
+
+        # clamp: non-overlapping boxes give negative width/height
+        inter = (inter_x2 - inter_x1).clamp(min=0) * (inter_y2 - inter_y1).clamp(min=0)
+        ious = inter / (areas[i] + areas[rest] - inter)
+
+        order = rest[ious <= iou_threshold]
+
+    keep = torch.tensor(keep, dtype=torch.long, device=boxes.device)
     #############################################################################
     #                              END OF YOUR CODE                             #
     #############################################################################
