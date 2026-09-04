@@ -178,7 +178,7 @@ def get_fpn_location_coords(
         ys = torch.arange(H, dtype=dtype, device=device) 
         xs = torch.arange(W, dtype=dtype, device=device)
         yy, xx = torch.meshgrid(ys, xs, indexing="ij")
-        location_coords[level_name] = (torch.stack([xx, yy], dim=-1) + 0.5) * level_stride
+        location_coords[level_name] = ((torch.stack([xx, yy], dim=-1) + 0.5) * level_stride).reshape(-1, 2)
 
         ######################################################################
         #                             END OF YOUR CODE                       #
