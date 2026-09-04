@@ -27,19 +27,25 @@ I'd delegate in a real job.
 | Block | File | Status |
 |---|---|---|
 | `DetectorBackboneWithFPN.__init__` | common.py | ✅ done (Claude) |
-| `DetectorBackboneWithFPN.forward` | common.py | ⚠️ nearly — see Open Items |
-| `get_fpn_location_coords` | common.py | ⚠️ nearly — needs `.reshape(-1, 2)` |
-| `nms` | common.py | ⬜ code ready in Appendix, not pasted |
-| everything in `one_stage_detector.py` | | ⬜ |
-| everything in `two_stage_detector.py` | | ⬜ |
+| `DetectorBackboneWithFPN.forward` | common.py | ✅ done (me) — uses `bilinear`, paper uses `nearest`; either fine |
+| `get_fpn_location_coords` | common.py | ✅ done (me) |
+| `nms` | common.py | ✅ pasted from Appendix |
+| `FCOSPredictionNetwork.__init__` / `forward` | one_stage | ✅ done (Claude) |
+| `fcos_get_deltas_from_locations` | one_stage | ✅ done (me, Claude vectorized) |
+| `fcos_apply_deltas_to_locations` | one_stage | ✅ done (me, Claude fixed signs/clamp) |
+| `fcos_make_centerness_targets` | one_stage | ✅ done (Claude) |
+| `FCOS.__init__` + `forward` wiring/matching | one_stage | ✅ done (Claude) |
+| `FCOS.forward` losses | one_stage | ✅ done (me) — `0.25 *` on box loss left out deliberately, see below |
+| `FCOS.inference` | one_stage | ✅ done (Claude) |
+| everything in `two_stage_detector.py` | | ⬜ not started |
 
-**27 student blocks total.** `a4_helper.py` has none.
+**Nothing has run yet.** All of the above is syntax-checked only; torch isn't installed locally.
 
 ### Open items
-- `forward`: lines 130-131 both say `output_c5` — should be `output_c4` / `output_c3`.
-  Runs fine, wrong results. Also `F.interpolate` needs keyword args
-  (`scale_factor=2, mode="nearest"`) — currently positional and wrong.
-- `get_fpn_location_coords`: logic correct, returns `(H,W,2)`, needs `(H*W,2)`.
+- Box loss weight: notebook cell 43 uses `0.25 * F.l1_loss(...)`; I'm running without
+  it first as a baseline. If mAP is low, that's the first knob.
+- Colab verification order: nb1 #33 → #38 → #40 → #49 → loss cell (~#43) → overfit (#45)
+  → full run → `cd mAP && python main.py`.
 
 ---
 
