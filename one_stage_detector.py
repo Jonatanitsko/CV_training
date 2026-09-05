@@ -587,7 +587,7 @@ class FCOS(nn.Module):
         classes_gt[background_zeroing_mask] = 0
         loss_cls = sigmoid_focal_loss(pred_cls_logits, classes_gt, reduction="none")
 
-        loss_box = 0.25 * F.l1_loss(pred_boxreg_deltas,matched_gt_deltas, reduction="none")
+        loss_box = F.l1_loss(pred_boxreg_deltas,matched_gt_deltas, reduction="none")
         loss_box[background_zeroing_mask] =0
 
         ctr_targets = fcos_make_centerness_targets(matched_gt_deltas.reshape(-1, 4)).reshape(pred_ctr_logits.shape)
