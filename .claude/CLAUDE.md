@@ -37,9 +37,20 @@ I'd delegate in a real job.
 | `FCOS.__init__` + `forward` wiring/matching | one_stage | ✅ done (Claude) |
 | `FCOS.forward` losses | one_stage | ✅ done (me) — `0.25 *` on box loss left out deliberately, see below |
 | `FCOS.inference` | one_stage | ✅ done (Claude) |
-| everything in `two_stage_detector.py` | | ⬜ not started |
+| `RPNPredictionNetwork.__init__` | two_stage | ✅ done (Claude) |
+| `RPNPredictionNetwork.forward` | two_stage | ✅ done (me) — permute before reshape, `(H, W, A)` order |
+| `generate_fpn_anchors` | two_stage | ✅ done (Claude) |
+| `iou` | two_stage | ✅ done (Claude, broadcast version; I understood the loop form) |
+| `rcnn_get/apply_deltas` | two_stage | ✅ done (Claude) |
+| `RPN.forward` wiring | two_stage | ✅ done (Claude) |
+| `RPN.forward` matching + losses | two_stage | ✅ done (me) — `0.25 *` kept here, unlike FCOS |
+| `RPN.predict_proposals` | two_stage | ✅ done (Claude, uses `torchvision.ops.nms`) |
+| `FasterRCNN.__init__` | two_stage | ✅ done (Claude) — in_channels from `backbone.out_channels` |
+| `roi_align` call | two_stage | ✅ done (Claude) |
+| second-stage matching + `loss_cls` | two_stage | ✅ done (me) — `(0.5, 0.5)`, +1 class shift, mean CE |
+| `FasterRCNN.inference` | two_stage | ✅ done (Claude) |
 
-**Nothing has run yet.** All of the above is syntax-checked only; torch isn't installed locally.
+**Nothing has run yet.** Both files are fully written and syntax-checked only; torch isn't installed locally. Next step is Colab verification (nb1 then nb2).
 
 ### Open items
 - Box loss weight: notebook cell 43 uses `0.25 * F.l1_loss(...)`; I'm running without
