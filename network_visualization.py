@@ -43,7 +43,7 @@ def compute_saliency_maps(X, y, model):
     # Replace "pass" statement with your code
     scores = model.forward(X)
     gt = scores.gather(1,y[:,None])
-    gt.sum.backward()
+    gt.sum().backward()
     grads = X.grad.data
     saliency = grads.abs().max(dim=1).values
     ##############################################################################
