@@ -124,15 +124,36 @@ class CVAE(nn.Module):
         # log-variance estimates of the latent space (N, Z)                       #
         ###########################################################################
         # Replace "pass" statement with your code
-        pass
-
+        self.hidden_dim = 256
+        self.encoder = nn.Sequential(
+            nn.Flatten(),
+            nn.Linear(self.input_size+self.num_classes, self.hidden_dim),
+            nn.ReLU(),
+            nn.Linear(self.hidden_dim, self.hidden_dim),
+            nn.ReLU(),
+            nn.Linear(self.hidden_dim, self.hidden_dim),
+            nn.ReLU(),
+        )
+        self.mu_layer = nn.Linear(self.hidden_dim, self.latent_size)
+        self.logvar_layer = nn.Linear(self.hidden_dim, self.latent_size)
         ###########################################################################
         # TODO: Define a fully-connected decoder as described in the notebook that#
         # transforms the latent space (N, Z + C) to the estimated images of shape #
         # (N, 1, H, W).                                                           #
         ###########################################################################
         # Replace "pass" statement with your code
-        pass
+        side = int(self.input_size ** 0.5)  # H = W = 28 for MNIST
+        self.decoder = nn.Sequential(
+            nn.Linear(self.latent_size + self.num_classes, self.hidden_dim),
+            nn.ReLU(),
+            nn.Linear(self.hidden_dim, self.hidden_dim),
+            nn.ReLU(),
+            nn.Linear(self.hidden_dim, self.hidden_dim),
+            nn.ReLU(),
+            nn.Linear(self.hidden_dim, self.input_size),
+            nn.Sigmoid(),
+            nn.Unflatten(1, (1, side, side)),
+        )
         ###########################################################################
         #                                      END OF YOUR CODE                   #
         ###########################################################################
@@ -165,7 +186,11 @@ class CVAE(nn.Module):
         #     resconstruct x                                                      #
         ###########################################################################
         # Replace "pass" statement with your code
-        pass
+        enc_out = self.encoder(torch.cat((x.flatten(1), c), dim=1))
+        mu = self.mu_layer(enc_out)
+        logvar = self.logvar_layer(enc_out)
+        z = reparametrize(mu,logvar)
+        x_hat = self.decoder(torch.cat((z, c), dim=1))
         ###########################################################################
         #                                      END OF YOUR CODE                   #
         ###########################################################################
