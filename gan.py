@@ -152,7 +152,7 @@ def get_optimizer(model):
     # TODO: Implement optimizer.                                                 #
     ##############################################################################
     # Replace "pass" statement with your code
-    torch.optim.Adam(model.parameters(), lr=0.001, betas=(0.9, 0.999), eps=1e-08, weight_decay=0, amsgrad=False)
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.001, betas=(0.9, 0.999), eps=1e-08, weight_decay=0, amsgrad=False)
     ##############################################################################
     #                              END OF YOUR CODE                              #
     ##############################################################################
